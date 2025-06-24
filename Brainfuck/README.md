@@ -117,7 +117,7 @@ bR41n_F4ck_Is_FuN_LanguaG3
 ## Takeaways
 
 * This was a lot harder than the previous Blackjack Exploit, I did.
-* Forntunately I had many resources to learn what exploit technique was needed
+* Fortunately I had many resources to learn what exploit technique was needed
 * for this CTF. I realized that my payload was not great and after seeing advanced payloads
 * I improved my ability to write python payloads to automate the process fo finding offsetts
 * and addresses. 
